@@ -1,0 +1,10 @@
+[package]
+name = "abicheck-rs"
+version = "0.1.0"
+edition = "2021"
+description = "Tools for analysing and comparing ELF dynamic library ABIs"
+authors = ["Rune Morling"]
+
+[dependencies]
+elf = "0.7.4"
+natural-sort-rs = "0.2.1"
