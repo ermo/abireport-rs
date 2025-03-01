@@ -5,7 +5,7 @@
 #![allow(dead_code)] // TODO
 
 use elf::abi;
-use elf::endian::{AnyEndian, EndianParse};
+use elf::endian::AnyEndian;
 use elf::{CommonElfData, ElfBytes};
 // use elf::ParseError;
 // use elf::note::Note;
@@ -84,7 +84,7 @@ fn parse_elf(file_name: &str) -> Result<AbiInfo> {
     })
 }
 
-fn parse_dynsyms<'data, E: EndianParse>(
+fn parse_dynsyms<'data>(
     common_elf_data: CommonElfData<'data, AnyEndian>,
 ) -> (Vec<String>, Vec<String>) {
     let (dynsyms, strtab) = (
@@ -138,9 +138,7 @@ fn parse_dynsyms<'data, E: EndianParse>(
     (abi_imports, abi_exports)
 }
 
-fn parse_rpath<'data, E: EndianParse>(
-    common_elf_data: CommonElfData<'data, AnyEndian>,
-) -> Option<&'data str> {
+fn parse_rpath<'data>(common_elf_data: CommonElfData<'data, AnyEndian>) -> Option<&'data str> {
     // parse DT_RPATH
     let (dynamic, strtab) = (
         common_elf_data.dynamic.unwrap(),
@@ -155,9 +153,7 @@ fn parse_rpath<'data, E: EndianParse>(
     Some(strtab.get(rpath_strtab_index).unwrap())
 }
 
-fn parse_runpath<'data, E: EndianParse>(
-    common_elf_data: CommonElfData<'data, AnyEndian>,
-) -> Option<&'data str> {
+fn parse_runpath<'data>(common_elf_data: CommonElfData<'data, AnyEndian>) -> Option<&'data str> {
     // parse DT_RPATH
     let (dynamic, strtab) = (
         common_elf_data.dynamic.unwrap(),
@@ -172,9 +168,7 @@ fn parse_runpath<'data, E: EndianParse>(
     Some(strtab.get(runpath_strtab_index).unwrap())
 }
 
-fn parse_soname<'data, E: EndianParse>(
-    common_elf_data: CommonElfData<'data, AnyEndian>,
-) -> Option<&'data str> {
+fn parse_soname<'data>(common_elf_data: CommonElfData<'data, AnyEndian>) -> Option<&'data str> {
     // parse DT_RPATH
     let (dynamic, strtab) = (
         common_elf_data.dynamic.unwrap(),
