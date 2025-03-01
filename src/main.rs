@@ -38,7 +38,7 @@ fn main() {
 }
 
 #[derive(Debug)]
-struct AbiInfo<'data> {
+struct AbiInfo {
     filename: String,            // Stuff that needs to can instantiate this as a Pathbuf
     dynsym_imports: Vec<String>, // the string version of symbols (deliberately unversioned for now)
     //    dynsym_imports_hash: ,
@@ -47,9 +47,9 @@ struct AbiInfo<'data> {
     manual_deps: Vec<String>, // deps added manually by a packager (could be useful?)
     needed_deps: Vec<String>, // dynamically linked at build time (via DT_NEEDED)
     optional_deps: Vec<String>, // dynamically linked and opened at runtime (via dlopen() calls)
-    rpath: Option<&'data str>, // DT_RPATH if available (needs to be analysed _after_ any patchelf manipulation)
-    runpath: Option<&'data str>, // DT_RUNPATH if available (needs to be analysed _after_ any patchelf manipulation)
-    soname: Option<&'data str>,  // DT_SONAME if available (this will be empty for executables)
+    rpath: Option<String>, // DT_RPATH if available (needs to be analysed _after_ any patchelf manipulation)
+    runpath: Option<String>, // DT_RUNPATH if available (needs to be analysed _after_ any patchelf manipulation)
+    soname: Option<String>,  // DT_SONAME if available (this will be empty for executables)
 }
 
 /// All the info we need for ABI parsing purposes.
@@ -69,7 +69,7 @@ fn parse_elf(file_name: &str) -> Result<AbiInfo> {
         .find_common_data()
         .expect("Section headers (shdrs) of {file_name:?} should parse.");
 
-    let (ds_imports, ds_exports) = parse_dynsyms(common_elf_data);
+    let (ds_imports, ds_exports) = parse_dynsyms(&common_elf_data);
 
     Ok(AbiInfo {
         filename: file_name.to_string(),
@@ -78,25 +78,25 @@ fn parse_elf(file_name: &str) -> Result<AbiInfo> {
         manual_deps: vec!["Not implemented".to_string()],
         needed_deps: vec!["Not implemented".to_string()],
         optional_deps: vec!["Not implemented".to_string()],
-        rpath: parse_rpath(common_elf_data),
-        runpath: parse_runpath(common_elf_data),
-        soname: parse_soname(common_elf_data),
+        rpath: parse_rpath(&common_elf_data),
+        runpath: parse_runpath(&common_elf_data),
+        soname: parse_soname(&common_elf_data),
     })
 }
 
 fn parse_dynsyms<'data>(
-    common_elf_data: CommonElfData<'data, AnyEndian>,
+    common_elf_data: &CommonElfData<'data, AnyEndian>,
 ) -> (Vec<String>, Vec<String>) {
     let (dynsyms, strtab) = (
-        common_elf_data.dynsyms.unwrap(),
-        common_elf_data.dynsyms_strs.unwrap(),
+        common_elf_data.dynsyms.as_ref().unwrap(),
+        common_elf_data.dynsyms_strs.as_ref().unwrap(),
     );
 
     // The fields that will eventually be moved into an ABI struct as the return value
     let mut abi_imports: Vec<String> = Vec::new();
     let mut abi_exports: Vec<String> = Vec::new();
 
-    for dynsym in dynsyms {
+    for dynsym in dynsyms.iter() {
         // find the type of each symbol (imported or exported)
         // each dynsym entry has a string table entry associated with it
         let ds = strtab
@@ -138,11 +138,11 @@ fn parse_dynsyms<'data>(
     (abi_imports, abi_exports)
 }
 
-fn parse_rpath<'data>(common_elf_data: CommonElfData<'data, AnyEndian>) -> Option<&'data str> {
+fn parse_rpath<'data>(common_elf_data: &CommonElfData<'data, AnyEndian>) -> Option<String> {
     // parse DT_RPATH
     let (dynamic, strtab) = (
-        common_elf_data.dynamic.unwrap(),
-        common_elf_data.symtab_strs.unwrap(),
+        common_elf_data.dynamic.as_ref().unwrap(),
+        common_elf_data.symtab_strs.as_ref().unwrap(),
     );
     let rpath_strtab_index: usize = dynamic
         .get(abi::DT_RPATH.try_into().unwrap()) // because we don't know the usize in advance
@@ -150,14 +150,14 @@ fn parse_rpath<'data>(common_elf_data: CommonElfData<'data, AnyEndian>) -> Optio
         .d_tag
         .try_into()
         .unwrap();
-    Some(strtab.get(rpath_strtab_index).unwrap())
+    Some(strtab.get(rpath_strtab_index).unwrap().to_owned())
 }
 
-fn parse_runpath<'data>(common_elf_data: CommonElfData<'data, AnyEndian>) -> Option<&'data str> {
+fn parse_runpath<'data>(common_elf_data: &CommonElfData<'data, AnyEndian>) -> Option<String> {
     // parse DT_RPATH
     let (dynamic, strtab) = (
-        common_elf_data.dynamic.unwrap(),
-        common_elf_data.symtab_strs.unwrap(),
+        common_elf_data.dynamic.as_ref().unwrap(),
+        common_elf_data.symtab_strs.as_ref().unwrap(),
     );
     let runpath_strtab_index: usize = dynamic
         .get(abi::DT_RPATH.try_into().unwrap()) // because we don't know the usize in advance
@@ -165,14 +165,14 @@ fn parse_runpath<'data>(common_elf_data: CommonElfData<'data, AnyEndian>) -> Opt
         .d_tag
         .try_into()
         .unwrap();
-    Some(strtab.get(runpath_strtab_index).unwrap())
+    Some(strtab.get(runpath_strtab_index).unwrap().to_owned())
 }
 
-fn parse_soname<'data>(common_elf_data: CommonElfData<'data, AnyEndian>) -> Option<&'data str> {
+fn parse_soname<'data>(common_elf_data: &CommonElfData<'data, AnyEndian>) -> Option<String> {
     // parse DT_RPATH
     let (dynamic, strtab) = (
-        common_elf_data.dynamic.unwrap(),
-        common_elf_data.symtab_strs.unwrap(),
+        common_elf_data.dynamic.as_ref().unwrap(),
+        common_elf_data.symtab_strs.as_ref().unwrap(),
     );
     let soname_strtab_index: usize = dynamic
         .get(abi::DT_SONAME.try_into().unwrap()) // because we don't know the usize in advance
@@ -180,7 +180,7 @@ fn parse_soname<'data>(common_elf_data: CommonElfData<'data, AnyEndian>) -> Opti
         .d_tag
         .try_into()
         .unwrap();
-    Some(strtab.get(soname_strtab_index).unwrap())
+    Some(strtab.get(soname_strtab_index).unwrap().to_owned())
 }
 
 // let abi = AbiInfo {
