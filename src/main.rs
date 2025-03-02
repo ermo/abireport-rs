@@ -20,7 +20,7 @@ fn main() {
 
     let files = &args[1..];
 
-    if files.len() > 1 {
+    if files.len() > 0 {
         for file in files {
             let abi_info = parse_elf(file).expect("{file} is not an ELF format file.");
             println!("\nABI-imports:");
