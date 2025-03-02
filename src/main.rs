@@ -20,19 +20,20 @@ fn main() {
 
     let files = &args[1..];
 
-    if files.len() > 0 {
+    if !files.is_empty() {
         for file in files {
             let abi_info = parse_elf(file).expect("{file} is not an ELF format file.");
-            println!("\nABI-imports:");
-            println!("{file}:");
-            for dynsym in abi_info.dynsym_imports {
-                println!("\t{:?}", dynsym);
-            }
-            println!("\nABI-exports:");
-            println!("{file}:");
-            for dynsym in abi_info.dynsym_exports {
-                println!("\t{:?}", dynsym);
-            }
+            println!("{:#?}", abi_info);
+            // println!("\nABI-imports:");
+            // println!("{file}:");
+            // for dynsym in abi_info.dynsym_imports {
+            //     println!("\t{:?}", dynsym);
+            // }
+            // println!("\nABI-exports:");
+            // println!("{file}:");
+            // for dynsym in abi_info.dynsym_exports {
+            //     println!("\t{:?}", dynsym);
+            // }
         }
     }
 }
