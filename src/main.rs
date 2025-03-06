@@ -4,7 +4,7 @@
 
 #![allow(dead_code)] // TODO
 
-use elf::abi;
+use elf::abi::{DT_NEEDED, DT_RPATH, DT_RUNPATH, DT_SONAME};
 use elf::endian::AnyEndian;
 use elf::{CommonElfData, ElfBytes};
 // use elf::ParseError;
@@ -13,6 +13,7 @@ use elf::{CommonElfData, ElfBytes};
 // use elf::section::SectionHeader;
 use natural_sort_rs::NaturalSortable;
 use std::env;
+use std::fmt::Debug;
 use std::io::Result;
 
 fn main() {
@@ -71,23 +72,21 @@ fn parse_elf(file_name: &str) -> Result<AbiInfo> {
         .expect("Section headers (shdrs) of {file_name:?} should parse.");
 
     let (ds_imports, ds_exports) = parse_dynsyms(&common_elf_data);
-
+    let (dt_needed, dt_rpath, dt_runpath, dt_soname) = parse_dynamic_section(&common_elf_data);
     Ok(AbiInfo {
         filename: file_name.to_string(),
         dynsym_imports: ds_imports,
         dynsym_exports: ds_exports,
         manual_deps: vec!["Not implemented".to_string()],
-        needed_deps: vec!["Not implemented".to_string()],
+        needed_deps: dt_needed,
         optional_deps: vec!["Not implemented".to_string()],
-        rpath: parse_rpath(&common_elf_data),
-        runpath: parse_runpath(&common_elf_data),
-        soname: parse_soname(&common_elf_data),
+        rpath: dt_rpath,
+        runpath: dt_runpath,
+        soname: dt_soname,
     })
 }
 
-fn parse_dynsyms<'data>(
-    common_elf_data: &CommonElfData<'data, AnyEndian>,
-) -> (Vec<String>, Vec<String>) {
+fn parse_dynsyms(common_elf_data: &CommonElfData<AnyEndian>) -> (Vec<String>, Vec<String>) {
     let (dynsyms, strtab) = (
         common_elf_data.dynsyms.as_ref().unwrap(),
         common_elf_data.dynsyms_strs.as_ref().unwrap(),
@@ -139,49 +138,62 @@ fn parse_dynsyms<'data>(
     (abi_imports, abi_exports)
 }
 
-fn parse_rpath<'data>(common_elf_data: &CommonElfData<'data, AnyEndian>) -> Option<String> {
-    // parse DT_RPATH
-    let (dynamic, strtab) = (
-        common_elf_data.dynamic.as_ref().unwrap(),
-        common_elf_data.symtab_strs.as_ref().unwrap(),
-    );
-    let rpath_strtab_index: usize = dynamic
-        .get(abi::DT_RPATH.try_into().unwrap()) // because we don't know the usize in advance
-        .unwrap()
-        .d_tag
-        .try_into()
-        .unwrap();
-    Some(strtab.get(rpath_strtab_index).unwrap().to_owned())
-}
+fn parse_dynamic_section(
+    common_elf_data: &CommonElfData<AnyEndian>,
+) -> (
+    Vec<String>,    // dt_needed
+    Option<String>, // dt_rpath
+    Option<String>, // dt_runpath
+    Option<String>, // dt_soname
+) {
+    // default values if everything goes to shit
+    let mut dt_needed = vec![];
+    let mut dt_rpath = None;
+    let mut dt_runpath = None;
+    let mut dt_soname = None;
 
-fn parse_runpath<'data>(common_elf_data: &CommonElfData<'data, AnyEndian>) -> Option<String> {
-    // parse DT_RPATH
-    let (dynamic, strtab) = (
-        common_elf_data.dynamic.as_ref().unwrap(),
-        common_elf_data.symtab_strs.as_ref().unwrap(),
-    );
-    let runpath_strtab_index: usize = dynamic
-        .get(abi::DT_RPATH.try_into().unwrap()) // because we don't know the usize in advance
-        .unwrap()
-        .d_tag
-        .try_into()
-        .unwrap();
-    Some(strtab.get(runpath_strtab_index).unwrap().to_owned())
-}
-
-fn parse_soname<'data>(common_elf_data: &CommonElfData<'data, AnyEndian>) -> Option<String> {
-    // parse DT_RPATH
-    let (dynamic, strtab) = (
-        common_elf_data.dynamic.as_ref().unwrap(),
-        common_elf_data.symtab_strs.as_ref().unwrap(),
-    );
-    let soname_strtab_index: usize = dynamic
-        .get(abi::DT_SONAME.try_into().unwrap()) // because we don't know the usize in advance
-        .unwrap()
-        .d_tag
-        .try_into()
-        .unwrap();
-    Some(strtab.get(soname_strtab_index).unwrap().to_owned())
+    if let Some(dynamic) = &common_elf_data.dynamic {
+        if let Some(dynsyms_strs) = &common_elf_data.dynsyms_strs {
+            for entry in dynamic.iter() {
+                match entry.d_tag {
+                    DT_NEEDED => dt_needed.push(
+                        dynsyms_strs
+                            .get(entry.d_val().try_into().unwrap())
+                            .unwrap()
+                            .to_string(),
+                    ),
+                    DT_RPATH => {
+                        dt_rpath = Some(
+                            dynsyms_strs
+                                .get(entry.d_val().try_into().unwrap())
+                                .unwrap()
+                                .to_string(),
+                        );
+                    }
+                    DT_RUNPATH => {
+                        dt_runpath = Some(
+                            dynsyms_strs
+                                .get(entry.d_val().try_into().unwrap())
+                                .unwrap()
+                                .to_string(),
+                        );
+                    }
+                    DT_SONAME => {
+                        dt_soname = Some(
+                            dynsyms_strs
+                                .get(entry.d_val().try_into().unwrap())
+                                .unwrap()
+                                .to_string(),
+                        );
+                    }
+                    _ => {}
+                }
+            }
+            // we want this in natural sort order
+            dt_needed.sort_by(|a, b| a.natural_cmp(b));
+        }
+    }
+    (dt_needed, dt_rpath, dt_runpath, dt_soname)
 }
 
 // let abi = AbiInfo {
