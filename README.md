@@ -1,6 +1,6 @@
 # abicheck-rs
 
-PoC ABI check Rust code using elf.rs for AerynOS
+PoC ABI report Rust code using elf.rs for AerynOS
 
 ## Try it
 
