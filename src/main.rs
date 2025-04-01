@@ -30,6 +30,7 @@ use elf::{CommonElfData, ElfBytes};
 use natural_sort_rs::NaturalSortable;
 use std::env;
 use std::fmt::Debug;
+use std::fs;
 use std::io::Result;
 
 fn main() {
@@ -39,8 +40,18 @@ fn main() {
 
     if !files.is_empty() {
         for file in files {
-            let abi_capture = parse_elf(file).expect("{file} is not an ELF format file.");
-            println!("{:#?}", abi_capture);
+            // Instantiating as symlink_metadata ensures that symlinks aren't followed
+            let metadata = fs::symlink_metadata(file)
+                .expect("{file} could not be parsed as symlink_metadata.");
+            if !metadata.is_dir() && !metadata.is_symlink() {
+                if let Some(abi_capture) =
+                    Some(parse_elf(file).expect("{file} is not an ELF format file."))
+                {
+                    println!("{:#?}", abi_capture);
+                }
+            } else {
+                println!("{file} is either a directory or a symlink. Skipping.")
+            }
         }
     }
 }
