@@ -1,7 +1,6 @@
 # Introduction
 
-The goal of this PoC is to build out an architecture allowing for capture and offline checking of captured 
-ABI information for ELF build artefacts.
+The goal of this PoC is to build out an architecture allowing for capture and offline checking of ABI information for ELF build artefacts.
 
 ## Definitions
 
@@ -51,14 +50,14 @@ the `AbiHash`), as that will make looking up the relevant `AbiReport` (specifica
 
 ### `AbiReport` index
 
-Designed to contains forward and reverse look-up functionality for recipes, their `AbiReport` structs and individual 
+Designed to contain forward and reverse look-up functionality for recipes, their `AbiReport` structs and individual 
 `AbiHash` and `AbiCapture` structs.
 
 The idea is that:
 
 - It should be possible to look up a symbol in a constrained set of executables and/or shared objects 
-- It should be possible to look up the `AbiReport`, the `AbiHash` and the `AbiCapture` for any given executable or 
-shared object.
+- It should be possible to look up the associated `AbiReport`, `AbiHash` and `AbiCapture` structs for any given
+  executable or shared object.
 
 
 ## BootStrap seeding approach
@@ -68,15 +67,14 @@ For the initial bootstrap effort, it may be necessary initially mark some imppor
 This is because it might not be practical to introspect all .stones in the entire repo for ABI correctness "on the fly", 
 because there is no real way currently to check which version of their build deps they were built against.
 
-Q: Would it make sense to begin saving the pkgID (naïvely `name-version-srcrelease-build-release`?) of each .stone used 
-as a builddep in the output .stone relatively soon...?
+Q: Would it make sense to begin saving the pkgID (naïvely `name-version-sourcerelease-buildrelease` + potentially the origin repo?)     of each .stone used as a builddep in the output .stone relatively soon...?
 
 
 ## Proposed rebuild resolver
 
-Once the above is in place, it should be possible to do a rebuild check pass using only AbiReports and associated 
+Once the above is in place, it should be possible to do a rebuild check pass using only `AbiReport` structs and associated 
 `AbiHash` checks.
 
 If the user has asked for it, it should now also be possible to compare exported symbols in the `AbiCapture` structs of 
-each builddep, with the imported symbols for each soname/executable and compute the diff on mismatch as evidence for why 
-a rebuild is necessary. 
+each builddep with the imported symbols for each soname/executable, and then compute the diff on mismatch as evidence for why 
+a rebuild is necessary.
