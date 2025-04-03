@@ -10,8 +10,7 @@ ABI information for ELF build artefacts.
 The lowest abstraction level is the `AbiCapture` struct.
 
 These structs capture the essential[1] dynamic linking related information we care about for a single ELF file as 
-stand-alone data unit, including the kind of ELF object (shared object or executable) and its list of imported and 
-exported dynamic linking symbols.
+stand-alone data unit, including the kind of ELF object (shared object or executable) and its dynamic linking related symbols.
 
 This means that each `AbiCapture` struct can own the underlying ELF file whilst parsing it, but still be independent of 
 the underlying ELF file afterwards.
@@ -41,21 +40,23 @@ However, for each executable and shared object it "owns", it also contains copie
 the relevant build dependencies for the given executable or shared object.
 
 This means that each AerynOS recipe will have an `AbiReport` that lists the `AbiHash` states of each associated build 
-dependency artefact, which was dynamically linked against at build time.
+dependency artefact, which was dynamically linked against it at build time.
 
 These `AbiHash` structs will obviously need to be resolvable to each of their generating recipes, for the purposes of 
 determining whether rebuilds are necessary.
 
 It is possible that it might be expedient to also save the actual artefact version / PkgID for each build dep (next to 
-the AbiHash), as that will make looking up the relevant `AbiReport` (specifically the `AbiCapture` part) trivial.
+the `AbiHash`), as that will make looking up the relevant `AbiReport` (specifically the `AbiCapture` part) trivial.
 
 
 ### `AbiReport` index
 
 Designed to contains forward and reverse look-up functionality for recipes, their `AbiReport` structs and individual 
-AbiHash and `AbiCapture` structs.
+`AbiHash` and `AbiCapture` structs.
 
-The idea is that: - It should be possible to look up a symbol in a constrained set of executables and/or shared objects 
+The idea is that:
+
+- It should be possible to look up a symbol in a constrained set of executables and/or shared objects 
 - It should be possible to look up the `AbiReport`, the `AbiHash` and the `AbiCapture` for any given executable or 
 shared object.
 
