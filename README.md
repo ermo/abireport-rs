@@ -1,4 +1,4 @@
-# abicheck-rs
+# abireport-rs
 
 PoC ABI report Rust code using elf.rs for AerynOS
 
