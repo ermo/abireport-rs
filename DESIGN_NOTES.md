@@ -17,6 +17,10 @@ the underlying ELF file afterwards.
 In particular, the `AbiCapture` struct contains lists of both exported and imported symbols from the .dynsym section and 
 its associated string table.
 
+Most likely, the AbiCapture data will live as separate files and be indexed separately on the binary vessel repo side,
+because they are ABI artefacts and therefore outputs from the recipe + build profile (and its associated build-time
+`system-model`).
+
 [1]: "Essential" means "necessary and sufficient information for the purpose of our desired analysis capability".
 
 
@@ -30,6 +34,8 @@ The `AbiHash` struct also hashes the `AbiCapture` struct's imported and exported
 
 Each `AbiHash` struct can therefore only be generated _after_ the associated `AbiCapture` struct has been created.
 
+Like the AbiCapture data, the AbiHash data will also live as separate files and be indexed separately on the binary
+vessel repo side.
 
 ### `AbiReport` struct
 
@@ -38,8 +44,9 @@ This struct is an amalgam of `AbiCapture` and associated `AbiHash` structs from 
 However, for each executable and shared object it "owns", it also contains copies of the `AbiHash` structs from each of 
 the relevant build dependencies for the given executable or shared object.
 
-This means that each AerynOS recipe will have an `AbiReport` that lists the `AbiHash` states of each associated build 
-dependency artefact, which was dynamically linked against it at build time.
+This means that each AerynOS recipe will have an `AbiReport` (captured on the binary side by boulder at build time and
+stored in the vessel repo) that lists the `AbiHash` states of each associated build dependency artefact, which was
+dynamically linked against at build time.
 
 These `AbiHash` structs will obviously need to be resolvable to each of their generating recipes, for the purposes of 
 determining whether rebuilds are necessary.
@@ -55,9 +62,9 @@ Designed to contain forward and reverse look-up functionality for recipes, their
 
 The idea is that:
 
-- It should be possible to look up a symbol in a constrained set of executables and/or shared objects 
-- It should be possible to look up the associated `AbiReport`, `AbiHash` and `AbiCapture` structs for any given
-  executable or shared object.
+- It should be possible to look up a symbol in a constrained set of executables and/or shared objects
+- It should be possible to look up the `AbiReport`, the `AbiHash` and the `AbiCapture` for any given executable or 
+shared object.
 
 
 ## BootStrap seeding approach
