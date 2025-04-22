@@ -30,22 +30,26 @@ Every `AbiCapture` struct has an associated `AbiHash` struct. This struct shares
 either the underlying DT_SONAME string XOR the underlying executable name string. This also implies that the `AbiHash` 
 struct needs to encode the kind of ELF object it is representing.
 
-The `AbiHash` struct also hashes the `AbiCapture` struct's imported and exported symbols to a single hash value each.
+The `AbiHash` struct then hashes the `AbiCapture` struct's exported symbols to a single hash value. This works a
+little like a build-id, but only for exported symbols. This exported symbol hash will come in useful for the
+final `AbiReport below.
 
 Each `AbiHash` struct can therefore only be generated _after_ the associated `AbiCapture` struct has been created.
 
-Like the AbiCapture data, the AbiHash data will also live as separate files and be indexed separately on the binary
+Like the `AbiCapture` data, the `AbiHash` data will also live as separate files and be indexed separately on the binary
 vessel repo side.
+
 
 ### `AbiReport` struct
 
 This struct is an amalgam of `AbiCapture` and associated `AbiHash` structs from the build artefacts under analysis.
 
-However, for each executable and shared object it "owns", it also contains copies of the `AbiHash` structs from each of 
-the relevant build dependencies for the given executable or shared object.
+However, for each executable and shared object it "owns", it also contains copies of the `AbiHash` export hashes from each of 
+the relevant build dependencies for the given executable or shared object. These `AbiHash` export hashes can then each be
+resolved against their parent `AbiReport`'s `AbiHash` export hashes contents.
 
 This means that each AerynOS recipe will have an `AbiReport` (captured on the binary side by boulder at build time and
-stored in the vessel repo) that lists the `AbiHash` states of each associated build dependency artefact, which was
+stored in the vessel repo) that lists the impoted `AbiHash` states of each associated build dependency artefact, which was
 dynamically linked against at build time.
 
 These `AbiHash` structs will obviously need to be resolvable to each of their generating recipes, for the purposes of 
