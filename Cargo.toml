@@ -1,5 +1,5 @@
 [package]
-name = "abicheck-rs"
+name = "abireport-rs"
 version = "0.1.0"
 edition = "2021"
 description = "Tools for analysing and comparing ELF dynamic library ABIs"

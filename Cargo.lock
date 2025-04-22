@@ -3,7 +3,7 @@
 version = 4
 
 [[package]]
-name = "abicheck-rs"
+name = "abireport-rs"
 version = "0.1.0"
 dependencies = [
  "elf",
